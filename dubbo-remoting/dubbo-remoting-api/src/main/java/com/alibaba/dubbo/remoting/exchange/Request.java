@@ -1,12 +1,12 @@
 /*
  * Copyright 1999-2011 Alibaba Group.
- *  
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,16 +21,16 @@ import com.alibaba.dubbo.common.utils.StringUtils;
 
 /**
  * Request.
- * 
+ *
  * @author qian.lei
  * @author william.liangf
  */
 public class Request {
-    
+
     public static final String HEARTBEAT_EVENT = null;
-    
+
     public static final String READONLY_EVENT = "R";
-    
+
     private static final AtomicLong INVOKE_ID = new AtomicLong(0);
 
     private final long    mId;
@@ -38,10 +38,12 @@ public class Request {
     private String  mVersion;
 
     private boolean mTwoWay   = true;
-    
+
     private boolean mEvent = false;
 
     private boolean mBroken   = false;
+
+    private boolean providerDubbox = false;
 
     private Object  mData;
 
@@ -97,6 +99,15 @@ public class Request {
     public void setData(Object msg) {
         mData = msg;
     }
+
+    public void setProviderDubbox(Boolean flag){
+        this.providerDubbox = flag;
+    }
+
+    public boolean isProviderDubbox(){
+        return providerDubbox;
+    }
+
 
     public boolean isHeartbeat() {
         return mEvent && HEARTBEAT_EVENT == mData;

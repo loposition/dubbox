@@ -27,8 +27,6 @@ import com.alibaba.dubbo.common.logger.Logger;
 import com.alibaba.dubbo.common.logger.LoggerFactory;
 import com.alibaba.dubbo.common.serialize.Cleanable;
 import com.alibaba.dubbo.common.serialize.ObjectInput;
-import com.alibaba.dubbo.common.serialize.OptimizedSerialization;
-import com.alibaba.dubbo.common.serialize.support.kryo.KryoSerialization;
 import com.alibaba.dubbo.common.utils.Assert;
 import com.alibaba.dubbo.common.utils.ReflectUtils;
 import com.alibaba.dubbo.common.utils.StringUtils;
@@ -90,7 +88,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
 
     public Object decode(Channel channel, InputStream input) throws IOException {
         ObjectInput in = CodecSupport.getSerialization(channel.getUrl(), serializationType)
-                .deserialize(channel.getUrl(), input);
+            .deserialize(channel.getUrl(), input);
 
         try {
             setAttachment(Constants.DUBBO_VERSION_KEY, in.readUTF());
@@ -101,28 +99,47 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
             try {
                 Object[] args;
                 Class<?>[] pts;
-
-                // NOTICE modified by lishen
-                int argNum = in.readInt();
-                if (argNum >= 0) {
-                    if (argNum == 0) {
-                        pts = DubboCodec.EMPTY_CLASS_ARRAY;
-                        args = DubboCodec.EMPTY_OBJECT_ARRAY;
+                if (isDubbox()){
+                    // NOTICE modified by lishen
+                    int argNum = in.readInt();
+                    if (argNum >= 0) {
+                        if (argNum == 0) {
+                            pts = DubboCodec.EMPTY_CLASS_ARRAY;
+                            args = DubboCodec.EMPTY_OBJECT_ARRAY;
+                        } else {
+                            args = new Object[argNum];
+                            pts = new Class[argNum];
+                            for (int i = 0; i < args.length; i++) {
+                                try {
+                                    args[i] = in.readObject();
+                                    pts[i] = args[i].getClass();
+                                } catch (Exception e) {
+                                    if (log.isWarnEnabled()) {
+                                        log.warn("Decode argument failed: " + e.getMessage(), e);
+                                    }
+                                }
+                            }
+                        }
                     } else {
-                        args = new Object[argNum];
-                        pts = new Class[argNum];
-                        for (int i = 0; i < args.length; i++) {
-                            try {
-                                args[i] = in.readObject();
-                                pts[i] = args[i].getClass();
-                            } catch (Exception e) {
-                                if (log.isWarnEnabled()) {
-                                    log.warn("Decode argument failed: " + e.getMessage(), e);
+                        String desc = in.readUTF();
+                        if (desc.length() == 0) {
+                            pts = DubboCodec.EMPTY_CLASS_ARRAY;
+                            args = DubboCodec.EMPTY_OBJECT_ARRAY;
+                        } else {
+                            pts = ReflectUtils.desc2classArray(desc);
+                            args = new Object[pts.length];
+                            for (int i = 0; i < args.length; i++) {
+                                try {
+                                    args[i] = in.readObject(pts[i]);
+                                } catch (Exception e) {
+                                    if (log.isWarnEnabled()) {
+                                        log.warn("Decode argument failed: " + e.getMessage(), e);
+                                    }
                                 }
                             }
                         }
                     }
-                } else {
+                }else {
                     String desc = in.readUTF();
                     if (desc.length() == 0) {
                         pts = DubboCodec.EMPTY_CLASS_ARRAY;
@@ -141,6 +158,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
                         }
                     }
                 }
+
                 setParameterTypes(pts);
 
                 Map<String, String> map = (Map<String, String>) in.readObject(Map.class);

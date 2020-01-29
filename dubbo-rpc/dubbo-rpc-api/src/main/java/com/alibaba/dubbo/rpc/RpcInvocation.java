@@ -23,6 +23,7 @@ import java.util.Map;
 
 import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.common.utils.DubboxJudgeUtils;
 
 /**
  * RPC Invocation.
@@ -43,6 +44,8 @@ public class RpcInvocation implements Invocation, Serializable {
     private Map<String, String>  attachments;
 
     private transient Invoker<?> invoker;
+
+    private transient  boolean dubbox = false;
 
     public RpcInvocation() {
     }
@@ -202,6 +205,14 @@ public class RpcInvocation implements Invocation, Serializable {
         return "RpcInvocation [methodName=" + methodName + ", parameterTypes="
                 + Arrays.toString(parameterTypes) + ", arguments=" + Arrays.toString(arguments)
                 + ", attachments=" + attachments + "]";
+    }
+
+    public boolean makeDubbox(){
+        return dubbox = true;
+    }
+
+    public boolean isDubbox(){
+        return dubbox || DubboxJudgeUtils.judeByVersion(getAttachments().get(Constants.DUBBO_VERSION_KEY));
     }
 
 }
